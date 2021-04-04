@@ -8,10 +8,23 @@ from statistics import median
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn import metrics
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from mlxtend.plotting import plot_decision_regions
+from scipy.special import expit
+import seaborn as sns
+import statsmodels
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
+
+# one-class svm for imbalanced binary classification
+from sklearn.datasets import make_classification
+from sklearn.metrics import f1_score
+from sklearn.svm import OneClassSVM
+
+
 
 # df = pd.read_csv("PS_2020.10.26_11.22.58.csv")
 df = pd.read_csv('PS_2020.10.26_11.22.58.csv', header=None, sep='\n', skiprows=303)
@@ -215,24 +228,25 @@ neigh = KNeighborsClassifier(n_neighbors = k).fit(X_train,y_train)
 Pred_y = neigh.predict(X_test)
 print("Accuracy of model at K=12 is",metrics.accuracy_score(y_test, Pred_y))
 
-# acc = []
-# # Will take some time
-# for i in range(1, 40):
-#     print(i)
-#     neigh = KNeighborsClassifier(n_neighbors=i).fit(X_train, y_train)
-#     yhat = neigh.predict(X_test)
-#     acc.append(metrics.accuracy_score(y_test, yhat))
-#
-# print(acc)
-# plt.figure(figsize=(10, 6))
-# plt.plot(range(1, 40), acc, color='blue', linestyle='dashed',
-#          marker='o', markerfacecolor='yellow', markersize=10)
-# plt.title('Accuracy vs. K Value (on Training Data)')
-# plt.xlabel('K')
-# plt.ylabel('Accuracy')
-# plt.show()
-# print("Maximum accuracy:-", max(acc), "at K =", acc.index(max(acc)) + 1)    # Same for [1, 7, 8, 12, 13, 14, 15] Pick the median value - 12
+acc = []
+# Will take some time
+for i in range(1, 40):
+    print(i)
+    neigh = KNeighborsClassifier(n_neighbors=i).fit(X_train, y_train)
+    yhat = neigh.predict(X_test)
+    acc.append(metrics.accuracy_score(y_test, yhat))
 
+print(acc)
+plt.figure(figsize=(10, 6))
+plt.plot(range(1, 40), acc, color='blue', linestyle='dashed',
+         marker='o', markerfacecolor='yellow', markersize=10)
+plt.title('Accuracy vs. K Value (on Training Data)')
+plt.xlabel('K')
+plt.ylabel('Accuracy')
+plt.show()
+print("Maximum accuracy:-", max(acc), "at K =", acc.index(max(acc)) + 1)    # Same for [1, 7, 8, 12, 13, 14, 15] Pick the median value - 12
+
+neigh = KNeighborsClassifier(n_neighbors=12).fit(X_train, y_train)
 
 # KNN on predict from external
 # grab external data [ALL OF IT, exclude training data]
@@ -265,6 +279,7 @@ for vc in range(len(preds)):
 # plt.boxplot([0,1,1,0,1])
 # plt.show()
 
+# Silhouette Score
 # sil = []
 # kmax = 20
 #
@@ -314,3 +329,102 @@ plt.xlabel('Equilibrium Temperature [K]')
 plt.ylabel('Stellar Effective Temperature [K]')
 plt.show()
 
+
+
+
+# Linear Regression model
+reg = LinearRegression().fit(X, y)
+# reg_y_results = reg.predict(X_test)
+# print("Linear Regression Accuracy - ", metrics.accuracy_score(y_test, reg_y_results))
+# print(reg_y_results)
+print('Linear Regression score - ', reg.score(X, y))
+
+# Logistic Regression Model
+clf = LogisticRegression(random_state=2).fit(X_train, y_train)
+clf_y_results = clf.predict(X_test)
+print(clf_y_results)
+print("Logistic Regression Accuracy - ", metrics.accuracy_score(y_test, clf_y_results))
+print('Logistic Regression score - ', clf.score(X, y))
+Pred_y = clf.predict(test_X)
+print(Pred_y.tolist().count(0), ' ', Pred_y.tolist().count(1))
+preds = Pred_y.tolist()
+for vc in range(len(preds)):
+    if preds[vc]  == 1:
+        print(names_X[vc])
+print('\n\n')
+
+# log_df = pd.DataFrame()
+# log_df['x'] = range(1, len(X_test)+1)
+# log_df['y'] = clf_y_results
+# sns.lmplot(x="x", y="y", data=log_df, logistic=True)
+# plt.show()
+
+
+# Naive Bayes classifier
+gnb = GaussianNB()
+# print(len(test_X), " ", len(X_test))
+y_pred = gnb.fit(X_train, y_train).predict(X_test)
+print("Naive Bayes Accuracy - ", metrics.accuracy_score(y_test, y_pred))
+print('Naive Bayes score - ', gnb.score(X, y))
+
+# Random Forest Classifier
+clf=RandomForestClassifier(n_estimators=100)
+clf.fit(X_train, y_train)
+y_pred = clf.predict(X_test)
+print("Random Forest Accuracy - ", metrics.accuracy_score(y_test, y_pred))
+print('Random Forest score - ', clf.score(X, y))
+Pred_y = clf.predict(test_X)
+print("Random Forest results")
+print(Pred_y.tolist().count(0), ' ', Pred_y.tolist().count(1))
+preds = Pred_y.tolist()
+for vc in range(len(preds)):
+    if preds[vc]  == 1:
+        print(names_X[vc])
+print('\n\n')
+
+# Imbalanced dataset
+# One-class SVM algorithm model
+
+# print(len(X) + len(X_test))
+# print(len(y) + len(y_test))
+
+# split into train/test sets
+
+# print("X\'s size is - ", len(X.shape))
+# print("y\'s size is - ", len(y.shape))
+trainX, testX, trainy, testy = train_test_split(X, y, test_size=0.5, random_state=2, stratify=y)
+# reshape data
+trainX = np.array(trainX)
+testX = np.array(testX)
+trainy = np.array(trainy)
+testy = np.array(testy)
+
+#reshape data [contd.]
+# trainX = trainX.reshape(-1,len(trainX))
+# testX = testX.reshape(-1, len(testX))
+# trainy = trainy.reshape(-1,len(trainy))
+# testy = testy.reshape(-1,len(testy))
+
+# define outlier detection model
+
+model = OneClassSVM(gamma='scale', nu=0.04)
+# fit on majority class (uninhabitables = 0)
+tempX = trainX[trainy==0]
+model.fit(tempX)
+# detect outliers in the test set
+yhat = model.predict(testX)
+# mark inliers 1, outliers -1
+testy[testy == 1] = -1
+testy[testy == 0] = 1
+# calculate score
+score = f1_score(testy, yhat, pos_label=-1)
+print('F1 Score: %.4f' % score)
+
+# print planets that are habitable
+
+Pred_y = model.predict(test_X)
+print(Pred_y.tolist().count(1), ' ', Pred_y.tolist().count(-1))
+preds = Pred_y.tolist()
+for vc in range(len(preds)):
+    if preds[vc]  == -1:
+        print(names_X[vc])

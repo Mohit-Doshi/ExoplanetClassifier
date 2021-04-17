@@ -561,3 +561,29 @@ y_pred_list = [a.squeeze().tolist() for a in y_pred_list]
 
 
 print(classification_report(y_test, y_pred_list))
+
+# print(type(X_test), ' ', type(test_X))
+
+# print(X_test, '\n', test_X)
+# test_Xarr = np.array(test_X)
+test_Xarr = scaler.transform(test_X)
+
+test_data = testData(torch.FloatTensor(test_Xarr)) # Actual data
+test_loader = DataLoader(dataset=test_data, batch_size=1)   # TODO: Try out other values
+y_pred_list = []
+model.eval()
+with torch.no_grad():
+    for X_batch in test_loader:
+        X_batch = X_batch.to(device)
+        y_test_pred = model(X_batch)
+        y_test_pred = torch.sigmoid(y_test_pred)
+        y_pred_tag = torch.round(y_test_pred)
+        y_pred_list.append(y_pred_tag.cpu().numpy())
+
+y_pred_list = [a.squeeze().tolist() for a in y_pred_list]
+print(len(y_pred_list))
+print(y_pred_list)
+
+for iv in range(len(y_pred_list)):
+    if y_pred_list[iv] == 1.0:
+        print(names_X[iv])
